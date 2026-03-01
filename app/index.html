@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BIP Analityk — Toruń</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg:        #0b0e14;
+      --surface:   #131720;
+      --border:    #1f2737;
+      --accent:    #e8ff47;
+      --accent2:   #47c8ff;
+      --text:      #d4dce8;
+      --muted:     #57667a;
+      --danger:    #ff4747;
+      --success:   #47ff9a;
+      --impact-s:  #47ff9a;
+      --impact-m:  #ffc147;
+      --impact-h:  #ff4747;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      z-index: 1000;
+    }
+    header .logo {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #fff;
+    }
+    header .logo span { color: var(--accent); }
+    header .subtitle {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      margin-left: auto;
+      transition: background 0.3s;
+    }
+    .status-dot.active { background: var(--success); box-shadow: 0 0 8px var(--success); }
+    .status-dot.loading { background: var(--accent); animation: pulse 1s ease infinite; }
+    .status-dot.error { background: var(--danger); }
+    @keyframes pulse { 50% { opacity: 0.3; } }
+
+    /* ── Layout ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      height: calc(100vh - 57px);
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar-inner {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    /* Address inputs */
+    .address-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .address-row { display: flex; gap: 0.4rem; align-items: center; }
+    .address-row input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      padding: 0.5rem 0.75rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .address-row input:focus { border-color: var(--accent); }
+    .address-row input::placeholder { color: var(--muted); }
+
+    .btn-icon {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1rem;
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-icon:hover { border-color: var(--accent2); color: var(--accent2); }
+    .btn-icon.remove:hover { border-color: var(--danger); color: var(--danger); }
+
+    .btn-add-addr {
+      background: transparent;
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.78rem;
+      padding: 0.45rem;
+      width: 100%;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .btn-add-addr:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Distance */
+    .distance-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 1rem 0;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+    }
+    .distance-row label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .distance-row input {
+      background: transparent;
+      border: none;
+      color: var(--accent);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.9rem;
+      font-weight: 500;
+      outline: none;
+      width: 60px;
+      text-align: right;
+    }
+    .distance-row span {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    /* Main action button */
+    .btn-analyze {
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: #0b0e14;
+      cursor: pointer;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      padding: 0.75rem 1rem;
+      width: 100%;
+      margin-bottom: 1.25rem;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .btn-analyze:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(232,255,71,0.25); }
+    .btn-analyze:active { transform: none; }
+    .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-analyze .spinner {
+      display: none;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(0,0,0,0.3);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    .btn-analyze.loading .spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results */
+    .results-section { display: none; }
+    .results-section.visible { display: block; }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 1rem 0;
+    }
+
+    .result-count {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+    .result-count strong { color: var(--accent2); }
+
+    .bip-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.875rem;
+      margin-bottom: 0.625rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .bip-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+    }
+    .bip-card.impact-small::before { background: var(--impact-s); }
+    .bip-card.impact-medium::before { background: var(--impact-m); }
+    .bip-card.impact-high::before { background: var(--impact-h); }
+    .bip-card:hover { border-color: var(--accent2); transform: translateX(2px); }
+
+    .bip-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .bip-numer {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+    }
+    .bip-distance {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--accent2);
+      white-space: nowrap;
+    }
+    .bip-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      line-height: 1.35;
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+    .bip-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+    }
+    .bip-tag {
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.6rem;
+      padding: 0.15rem 0.4rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .bip-impact-badge {
+      border-radius: 4px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.6rem;
+      font-weight: 500;
+      padding: 0.15rem 0.4rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .bip-impact-badge.small { background: rgba(71,255,154,0.1); color: var(--impact-s); }
+    .bip-impact-badge.medium { background: rgba(255,193,71,0.1); color: var(--impact-m); }
+    .bip-impact-badge.high { background: rgba(255,71,71,0.1); color: var(--impact-h); }
+
+    /* Error */
+    .error-box {
+      background: rgba(255,71,71,0.08);
+      border: 1px solid rgba(255,71,71,0.3);
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--danger);
+      display: none;
+      margin-bottom: 0.75rem;
+    }
+    .error-box.visible { display: block; }
+
+    /* ── Map ── */
+    #map {
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Leaflet custom */
+    .leaflet-container { background: #0b0e14 !important; }
+
+    /* Loading overlay */
+    .map-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(11,14,20,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+      backdrop-filter: blur(4px);
+    }
+    .map-overlay.visible { display: flex; }
+    .map-overlay-text {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .map-overlay-text .big-spinner {
+      width: 28px; height: 28px;
+      border: 3px solid rgba(232,255,71,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    .map-wrapper { position: relative; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">BIP <span>Analityk</span></div>
+    <div class="subtitle">Biuletyn Informacji Publicznej · Toruń</div>
+  </div>
+  <div class="status-dot" id="statusDot" title="Status"></div>
+</header>
+
+<div class="layout">
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <div class="section-label">Adresy użytkownika</div>
+
+      <div class="address-list" id="addressList">
+        <!-- populated by JS -->
+      </div>
+      <button class="btn-add-addr" onclick="addAddressField()">＋ Dodaj adres</button>
+
+      <div class="distance-row">
+        <label>Promień wyszukiwania</label>
+        <input type="number" id="distanceInput" value="10" min="0.1" step="0.5" />
+        <span>km</span>
+      </div>
+
+      <div class="error-box" id="errorBox"></div>
+
+      <button class="btn-analyze" id="analyzeBtn" onclick="runAnalysis()">
+        <div class="spinner"></div>
+        <span>Analizuj &amp; Pobierz BIP</span>
+      </button>
+
+      <!-- Results -->
+      <div class="results-section" id="resultsSection">
+        <div class="divider"></div>
+        <div class="section-label">Wyniki BIP</div>
+        <div class="result-count" id="resultCount"></div>
+        <div id="bipCards"></div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ── Map ── -->
+  <div class="map-wrapper">
+    <div id="map"></div>
+    <div class="map-overlay" id="mapOverlay">
+      <div class="map-overlay-text">
+        <div class="big-spinner"></div>
+        <span id="overlayMsg">Pobieranie danych BIP…</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Map init ──────────────────────────────────────────────────────────────────
+const map = L.map('map', { zoomControl: true }).setView([53.0138, 18.5981], 13);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap © CARTO',
+  subdomains: 'abcd',
+  maxZoom: 19,
+}).addTo(map);
+
+const userLayerGroup = L.layerGroup().addTo(map);
+const bipLayerGroup  = L.layerGroup().addTo(map);
+
+const makeIcon = (color, label) => L.divIcon({
+  className: '',
+  html: `<div style="
+    width:28px;height:28px;border-radius:50%;
+    background:${color};
+    border:3px solid #fff;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Syne',sans-serif;font-size:9px;font-weight:800;
+    color:#0b0e14;box-shadow:0 2px 8px rgba(0,0,0,0.5);
+  ">${label}</div>`,
+  iconAnchor: [14, 14],
+});
+
+const userIcon  = makeIcon('#e8ff47', 'U');
+const bipIcons = {
+  small:  makeIcon('#47ff9a', 'B'),
+  medium: makeIcon('#ffc147', 'B'),
+  high:   makeIcon('#ff4747', 'B'),
+};
+
+// ── Addresses ─────────────────────────────────────────────────────────────────
+let addrCount = 0;
+
+function addAddressField(value = '') {
+  addrCount++;
+  const id = `addr-${addrCount}`;
+  const list = document.getElementById('addressList');
+  const row = document.createElement('div');
+  row.className = 'address-row';
+  row.id = id;
+  row.innerHTML = `
+    <input type="text" placeholder="np. ul. Szeroka 12, Toruń" value="${value}" />
+    <button class="btn-icon remove" onclick="removeAddr('${id}')" title="Usuń">✕</button>
+  `;
+  list.appendChild(row);
+}
+
+function removeAddr(id) {
+  const el = document.getElementById(id);
+  const list = document.getElementById('addressList');
+  if (list.children.length > 1) el.remove();
+}
+
+function getAddresses() {
+  return [...document.querySelectorAll('.address-row input')]
+    .map(i => i.value.trim())
+    .filter(Boolean);
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+const statusDot   = document.getElementById('statusDot');
+const analyzeBtn  = document.getElementById('analyzeBtn');
+const errorBox    = document.getElementById('errorBox');
+const mapOverlay  = document.getElementById('mapOverlay');
+const overlayMsg  = document.getElementById('overlayMsg');
+
+const API = '';  // same origin; adjust if backend on different port
+
+function setStatus(s) {
+  statusDot.className = `status-dot ${s}`;
+}
+
+function setLoading(yes, msg = 'Ładowanie…') {
+  analyzeBtn.disabled = yes;
+  analyzeBtn.classList.toggle('loading', yes);
+  mapOverlay.classList.toggle('visible', yes);
+  overlayMsg.textContent = msg;
+}
+
+function showError(msg) {
+  errorBox.textContent = msg;
+  errorBox.classList.add('visible');
+  setStatus('error');
+}
+
+function clearError() {
+  errorBox.textContent = '';
+  errorBox.classList.remove('visible');
+}
+
+// ── Main analysis flow ────────────────────────────────────────────────────────
+async function runAnalysis() {
+  clearError();
+  const addresses = getAddresses();
+  if (!addresses.length) { showError('Podaj co najmniej jeden adres.'); return; }
+
+  const distance = parseFloat(document.getElementById('distanceInput').value) || 10;
+
+  setLoading(true, 'Geokodowanie adresów…');
+  setStatus('loading');
+  userLayerGroup.clearLayers();
+  bipLayerGroup.clearLayers();
+  document.getElementById('resultsSection').classList.remove('visible');
+
+  try {
+    // 1. Geocode user addresses
+    const geoResp = await fetch(`${API}/user_input`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_addresses: addresses }),
+    });
+    if (!geoResp.ok) throw new Error(`Geocoding error: ${geoResp.statusText}`);
+    const geoData = await geoResp.json();
+
+    // Show user markers
+    const bounds = [];
+    geoData.coordinates.forEach(([lat, lon], i) => {
+      if (!lat || !lon) return;
+      L.marker([lat, lon], { icon: userIcon })
+        .addTo(userLayerGroup)
+        .bindPopup(`<b>Twój adres</b><br>${geoData.user_addresses[i]}`);
+      bounds.push([lat, lon]);
+    });
+
+    // 2. Download BIP
+    overlayMsg.textContent = 'Pobieranie danych BIP (może potrwać chwilę)…';
+    const bipResp = await fetch(`${API}/download_bip`);
+    if (!bipResp.ok) throw new Error(`BIP download error: ${bipResp.statusText}`);
+
+    // 3. Get nearest BIP
+    overlayMsg.textContent = 'Obliczanie odległości…';
+    const nearResp = await fetch(`${API}/get_nearest_bip`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_addresses: addresses, distance_km: distance }),
+    });
+    if (!nearResp.ok) throw new Error(`Nearest BIP error: ${nearResp.statusText}`);
+    const nearData = await nearResp.json();
+
+    // Show BIP markers
+    nearData.bip_entries.forEach(entry => {
+      const [lat, lon] = entry.coordinates;
+      if (!lat || !lon) return;
+      const icon = bipIcons[entry.impact] || bipIcons.small;
+      L.marker([lat, lon], { icon })
+        .addTo(bipLayerGroup)
+        .bindPopup(`
+          <div style="font-family:Syne,sans-serif;max-width:240px">
+            <div style="font-size:0.65rem;color:#999;margin-bottom:4px">${entry.numer} · ${entry.data}</div>
+            <div style="font-weight:700;margin-bottom:6px;font-size:0.85rem">${entry.tytuł || 'Brak tytułu'}</div>
+            <div style="font-size:0.7rem;color:#aaa">Wpływ: <b>${entry.impact}</b></div>
+            <div style="font-size:0.7rem;color:#aaa">Typy: ${(entry.type||[]).join(', ')}</div>
+            <div style="font-size:0.7rem;color:#47c8ff;margin-top:4px">📍 ${entry.distance_km} km</div>
+          </div>
+        `);
+      bounds.push([lat, lon]);
+    });
+
+    if (bounds.length) {
+      map.fitBounds(bounds, { padding: [40, 40] });
+    }
+
+    // Render cards
+    renderBipCards(nearData.bip_entries);
+    document.getElementById('resultsSection').classList.add('visible');
+
+    setStatus('active');
+  } catch (err) {
+    showError(err.message || 'Nieznany błąd. Sprawdź konsolę.');
+    setStatus('error');
+  } finally {
+    setLoading(false);
+  }
+}
+
+function renderBipCards(entries) {
+  const container = document.getElementById('bipCards');
+  const count = document.getElementById('resultCount');
+  container.innerHTML = '';
+  count.innerHTML = `Znaleziono <strong>${entries.length}</strong> wpisów w promieniu`;
+
+  if (!entries.length) {
+    container.innerHTML = `<div style="font-size:0.78rem;color:var(--muted);text-align:center;padding:1rem 0">Brak wyników w zadanym promieniu.</div>`;
+    return;
+  }
+
+  entries.forEach(entry => {
+    const card = document.createElement('div');
+    const impactClass = entry.impact === 'high' ? 'high' : entry.impact === 'medium' ? 'medium' : 'small';
+    card.className = `bip-card impact-${impactClass}`;
+
+    const types = (entry.type || []).map(t =>
+      `<span class="bip-tag">${t}</span>`
+    ).join('');
+
+    card.innerHTML = `
+      <div class="bip-card-header">
+        <span class="bip-numer">${entry.numer || '—'} · ${entry.data || ''}</span>
+        <span class="bip-distance">📍 ${entry.distance_km} km</span>
+      </div>
+      <div class="bip-title">${entry.tytuł || 'Brak tytułu'}</div>
+      <div class="bip-tags">
+        <span class="bip-impact-badge ${impactClass}">${entry.impact}</span>
+        ${types}
+      </div>
+    `;
+    card.title = entry.address || '';
+
+    // Click to fly to location
+    card.addEventListener('click', () => {
+      const [lat, lon] = entry.coordinates;
+      if (lat && lon) map.flyTo([lat, lon], 15, { duration: 1 });
+    });
+
+    container.appendChild(card);
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+addAddressField();
+setStatus('active');
+</script>
+</body>
+</html>

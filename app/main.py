@@ -48,7 +48,7 @@ class UserInputRequest(BaseModel):
 
 class UserInputResponse(BaseModel):
     user_addresses: list[str]
-    coordinates: list[tuple[float | None, float | None]]
+    coordinates: list[tuple[float, float]]
 
 class ImpactResponse(BaseModel):
     impact: Literal["small", "medium", "high"]
@@ -127,11 +127,14 @@ def remove_address_prefixes(address):
     return address
 
 async def llm_geocode_addresses(addresses: list[str]) -> list[tuple[float, float]]:
+    print("Geocoding addresses.")
     addresses = [remove_address_prefixes(i) for i in addresses]
     coords = await asyncio.gather(*[geocode(address) for address in addresses])
+    for i, j in zip(addresses, coords):
+        print(str(j) + " " + i)
     return coords
 
-async def geocode(address: str) -> Optional[Tuple[float | None, float | None]]:
+async def geocode(address: str) -> Optional[Tuple[float, float]]:
     """Geocode an address/area name using Nominatim (OpenStreetMap)."""
     params = {
         "q": address,
@@ -183,7 +186,7 @@ Text:
 Respond ONLY with valid JSON in this exact format:
 {{"impact": "medium", "type": ["noise", "more traffic"]}}
 """
-    logging.info("Attempting to estimate impact.")
+    print("Attempting to estimate impact.")
     message = client.chat.completions.create(
         model="gemini-2.5-pro",
         max_tokens=256,
@@ -192,7 +195,7 @@ Respond ONLY with valid JSON in this exact format:
     raw = message.content[0].text.strip()
     match = re.search(r'\{.*\}', raw, re.DOTALL)
     if match:
-        logging.info("Found impact %s" %match.group())
+        print("Found impact %s" %match.group())
         data = json.loads(match.group())
         return ImpactResponse(**data)
     raise ValueError(f"Could not parse impact from LLM response: {raw}")
@@ -200,9 +203,9 @@ Respond ONLY with valid JSON in this exact format:
 
 async def llm_geocode_single(address: str) -> tuple[float, float]:
     """Geocode a single address string."""
-    logging.info("Attempting to geocode address: %s" %address)
+    print("Attempting to geocode address: %s" %address)
     coords = await llm_geocode_addresses([address])
-    logging.info("Found coordinates %s for address: %s" %(coords, address))
+    print("Found coordinates %s for address: %s" %(coords, address))
     return coords[0]
 
 # ── BIP scraper ─────────────────────────────────────────────────────────────────
@@ -210,7 +213,7 @@ async def scrape_bip_entries() -> list[dict]:
     """Download and parse BIP entries from the last month."""
     one_month_ago = datetime.now() - timedelta(days=31)
     entries = []
-    logging.info("Attempting to scrape BIP entries.")
+    print("Attempting to scrape BIP entries.")
 
     async with httpx.AsyncClient(timeout=30, follow_redirects=True) as http:
         try:
@@ -223,7 +226,7 @@ async def scrape_bip_entries() -> list[dict]:
         soup = BeautifulSoup(resp.text, "html.parser")
 
         # Try to find table rows with BIP data
-        logging.info("Attempting to use soup.")
+        print("Attempting to use soup.")
         rows = soup.find_all("tr")
         print("rows", rows)
         
@@ -390,6 +393,8 @@ async def download_bip():
     global _last_bip
     entries = await scrape_bip_entries()
     _last_bip = entries
+    print("Found %i entries in BIP." % len(entries))
+    print(str(entries))
     return entries
 
 
@@ -421,7 +426,7 @@ async def get_nearest_bip(body: NearestBipRequest):
 
 @app.get("/")
 def serve_frontend():
-    return FileResponse("./index.html")
+    return FileResponse("./app/index.html")
 
 
 # ── Run ─────────────────────────────────────────────────────────────────────────

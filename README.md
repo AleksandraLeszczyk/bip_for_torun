@@ -6,6 +6,16 @@ geocodes addresses using OpenAI LLM API + NER, and shows nearby bulletins on an 
 <img width="1137" height="586" alt="image" src="https://github.com/user-attachments/assets/abf78b78-f83d-411c-8be7-8dfee26cb75b" />
 
 
+## Key Business Applications
+
+    **Real Estate Strategy**: Track zoning changes (MPZP) and building permits to predict property value shifts and identify development land.
+
+    **ESG & Environmental Risk**: Map industrial permits and waste management decisions to automate corporate compliance and risk reporting.
+
+    **Logistics & Infrastructure**: Detect upcoming roadworks and utility projects to reroute supply chains and avoid administrative delays.
+
+    **Legal Due Diligence**: Automate the extraction of historical administrative decisions for land acquisitions, replacing hundreds of manual audit hours.
+
 ## Architecture
 
 ```

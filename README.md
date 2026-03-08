@@ -8,13 +8,13 @@ geocodes addresses using OpenAI LLM API + NER, and shows nearby bulletins on an 
 
 ## Key Business Applications
 
-    **Real Estate Strategy**: Track zoning changes (MPZP) and building permits to predict property value shifts and identify development land.
+**Real Estate Strategy**: Track zoning changes (MPZP) and building permits to predict property value shifts and identify development land.
 
-    **ESG & Environmental Risk**: Map industrial permits and waste management decisions to automate corporate compliance and risk reporting.
+**ESG & Environmental Risk**: Map industrial permits and waste management decisions to automate corporate compliance and risk reporting.
 
-    **Logistics & Infrastructure**: Detect upcoming roadworks and utility projects to reroute supply chains and avoid administrative delays.
+**Logistics & Infrastructure**: Detect upcoming roadworks and utility projects to reroute supply chains and avoid administrative delays.
 
-    **Legal Due Diligence**: Automate the extraction of historical administrative decisions for land acquisitions, replacing hundreds of manual audit hours.
+**Legal Due Diligence**: Automate the extraction of historical administrative decisions for land acquisitions, replacing hundreds of manual audit hours.
 
 ## Architecture
 

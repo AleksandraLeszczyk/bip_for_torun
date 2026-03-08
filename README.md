@@ -1,16 +1,17 @@
 # BIP Analityk — Toruń
 
 A full-stack application that analyzes Biuletyn Informacji Publicznej (BIP) documents,
-geocodes addresses using Claude LLM + NER, and shows nearby bulletins on an interactive map.
+geocodes addresses using OpenAI LLM API + NER, and shows nearby bulletins on an interactive map.
 
 ## Architecture
 
 ```
 bip_app/
-├── main.py          # FastAPI backend
-├── index.html       # Single-page frontend (served by FastAPI)
 ├── requirements.txt
-└── README.md
+├── README.md        
+└── app 
+    ├── main.py      # FastAPI backend
+    └── index.html   # Single-page frontend (served by FastAPI)
 ```
 
 ## Setup

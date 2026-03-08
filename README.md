@@ -3,6 +3,9 @@
 A full-stack application that analyzes Biuletyn Informacji Publicznej (BIP) documents,
 geocodes addresses using OpenAI LLM API + NER, and shows nearby bulletins on an interactive map.
 
+<img width="1137" height="586" alt="image" src="https://github.com/user-attachments/assets/abf78b78-f83d-411c-8be7-8dfee26cb75b" />
+
+
 ## Architecture
 
 ```

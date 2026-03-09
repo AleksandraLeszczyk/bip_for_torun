@@ -13,15 +13,15 @@ from typing import Literal, Optional, Tuple
 from bs4 import BeautifulSoup
 
 import asyncio
-import anthropic
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 from openai import OpenAI
 from pydantic import BaseModel
+from bs4 import BeautifulSoup
+import re
 
-# ── Configuration ──────────────────────────────────────────────────────────────
+# -- Configuration --------------------------------------------------------
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_API_URL = os.getenv("LLM_API_URL", "")
 DISTANCE_KM = float(os.getenv("DISTANCE", "10"))
@@ -58,33 +58,7 @@ class NearestBipRequest(BaseModel):
     user_addresses: list[str]
     distance_km: float = DISTANCE_KM
 
-# ── LLM helpers ─────────────────────────────────────────────────────────────────
-# def llm_geocode_addresses(addresses: list[str]) -> list[tuple[float, float]]:
-#     """Use Claude to extract / approximate coordinates for given addresses using NER."""
-#     prompt = f"""You are a geocoding assistant with NER capabilities.
-# Given the following list of addresses (likely in Toruń, Poland or nearby), 
-# extract the named entities and return approximate GPS coordinates (latitude, longitude) for each.
-
-# Addresses:
-# {json.dumps(addresses, ensure_ascii=False)}
-
-# Respond ONLY with a valid JSON array of [lat, lon] pairs in the same order as the input.
-# Use real-world coordinates for Toruń, Poland region.
-# Example format: [[53.0138, 18.5981], [53.0200, 18.6100]]
-# """
-#     message = client.chat.completions.create(
-#         model="gemini-2.5-pro",
-#         max_tokens=1024,
-#         messages=[{"role": "user", "content": prompt}],
-#     )
-#     text = message.content[0].text.strip()
-#     # Extract JSON array
-#     match = re.search(r'\[\s*\[.*?\]\s*\]', text, re.DOTALL)
-#     if match:
-#         coords = json.loads(match.group())
-#         return [tuple(c) for c in coords]
-#     raise ValueError(f"Could not parse coordinates from LLM response: {text}")
-
+# -- LLM helpers -------------------------------------------------------------
 def extract_address(text: str) -> Optional[list[str]]:
     """Use LLM API to extract the geographical area name from BIP content."""
     if not LLM_API_KEY:
@@ -208,7 +182,7 @@ async def llm_geocode_single(address: str) -> tuple[float, float]:
     print("Found coordinates %s for address: %s" %(coords, address))
     return coords[0]
 
-# ── BIP scraper ─────────────────────────────────────────────────────────────────
+# -- BIP scraper ----------------------------------------------------
 async def scrape_bip_entries() -> list[dict]:
     """Download and parse BIP entries from the last month."""
     one_month_ago = datetime.now() - timedelta(days=31)
@@ -227,6 +201,7 @@ async def scrape_bip_entries() -> list[dict]:
 
         # Try to find table rows with BIP data
         print("Attempting to use soup.")
+        print(soup)
         rows = soup.find_all("tr")
         print("rows", rows)
         
@@ -371,7 +346,7 @@ def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-# ── Endpoints ───────────────────────────────────────────────────────────────────
+# -- Endpoints -----------------------------------------------------------
 @app.post("/user_input", response_model=UserInputResponse)
 async def user_input(body: UserInputRequest):
     """Transform address list to addresses + coordinates using LLM NER."""
@@ -429,7 +404,7 @@ def serve_frontend():
     return FileResponse("./app/index.html")
 
 
-# ── Run ─────────────────────────────────────────────────────────────────────────
+# -- Run -------------------------------------------------------------------------
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, log_level="debug")

@@ -1,0 +1,11 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - USER_EMAIL=${USER_EMAIL}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_API_URL=${LLM_API_URL}
+      - DISTANCE=10
+    restart: unless-stopped
